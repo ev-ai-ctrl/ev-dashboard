@@ -2571,7 +2571,7 @@ function renderOneView(){
   var lmY=d1Date.getMonth()===0?d1Date.getFullYear()-1:d1Date.getFullYear();
   var lmM=d1Date.getMonth()===0?12:d1Date.getMonth();
   var lmFirst=new Date(lmY,lmM-1,1),lmLast=new Date(lmY,lmM,0);
-  function toS(d){return d.toISOString().slice(0,10);}
+  function toS(d){var y=d.getFullYear(),mo=d.getMonth()+1,dy=d.getDate();return y+'-'+(mo<10?'0':'')+mo+'-'+(dy<10?'0':'')+dy;}
   function gIdx(s,e){var st={};for(var i=0;i<dates.length;i++)if(dates[i]>=s&&dates[i]<=e)st[i]=1;return st;}
   var cwIdx=gIdx(toS(cwMon),d1Str),lwIdx=gIdx(toS(lwMon),toS(lwSun)),lmIdx=gIdx(toS(lmFirst),toS(lmLast));
   var MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2679,20 +2679,34 @@ function renderOneView(){
   cAct.forEach(function(row2,i){var cn=cNet[row2.c]||{cw:0,lw:0,lm:0};tCW+=cn.cw;tLW+=cn.lw;tLM+=cn.lm;netBody+=tblR([{v:row2.c,b:1},{v:nb(cn.cw),r:1},{v:nb(cn.lw),r:1},{v:nb(cn.lm),r:1}],i%2);});
   netBody+=tblFoot([{v:'Total'},{v:nb(tCW),r:1},{v:nb(tLW),r:1},{v:nb(tLM),r:1}]);
   var netSec=tbl(tblH([{t:'City'},{t:cwLab,r:1},{t:lwLab,r:1},{t:lmLab,r:1}])+netBody);
-  /* Top 5 CM nets below */
-  var cmNetH=tblH([{t:'CM'},{t:'City'},{t:'CW',r:1},{t:'LW',r:1},{t:'LM',r:1}]);
-  var cmNetB='';
-  cmNet.slice(0,5).forEach(function(r,i){cmNetB+=tblR([{v:r.cm,b:1},{v:r.city},{v:nb(r.cw),r:1},{v:nb(r.lw),r:1},{v:nb(r.lm),r:1}],i%2);});
+  /* Top 5 CMs by net — 3 separate period lists */
+  function cmNetList(sorted, period, label){
+    var top=sorted.slice(0,5);
+    if(!top.length) return '';
+    var rows='';
+    top.forEach(function(r,i){
+      var n=period==='cw'?r.cw:period==='lw'?r.lw:r.lm;
+      rows+='<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 14px;'+(i%2?'background:#253347':'')+';border-bottom:1px solid #1e293b">'
+        +'<span style="font-size:12px;color:'+TXT+'">'+(i+1)+'. <strong>'+r.cm+'</strong> <span style="color:'+MUT+';font-size:11px">('+r.city+')</span></span>'
+        +'<span style="font-size:13px;font-weight:700;color:'+(n>0?POS:n<0?NEG:MUT)+'">'+( n>0?'+':'')+n+'</span>'
+        +'</div>';
+    });
+    return '<div style="padding:7px 14px 4px;background:#162032;font-size:10px;font-weight:700;color:'+ACC+';border-top:'+BD+';letter-spacing:.3px">'+label+'</div>'+rows;
+  }
+  var cwSorted=cmNet.slice().sort(function(a,b){return b.cw-a.cw;});
+  var lwSorted=cmNet.slice().sort(function(a,b){return b.lw-a.lw;});
+  var lmSorted=cmNet.slice().sort(function(a,b){return b.lm-a.lm;});
   var netInner=cardH('Net Additions — City Split')+netSec
-    +'<div style="padding:8px 14px;background:#162032;font-size:10px;font-weight:700;color:'+MUT+';border-top:'+BD+';border-bottom:'+BD+'">TOP 5 CMs — NET ADDITIONS</div>'
-    +tbl(cmNetH+cmNetB);
+    +cmNetList(cwSorted,'cw','CW: '+cwLab)
+    +cmNetList(lwSorted,'lw','LW: '+lwLab)
+    +cmNetList(lmSorted,'lm','LM: '+lmLab);
   out+=wrap(netInner);
 
   /* bottom 10 captains */
   var botCap=allCAP.slice().reverse().slice(0,10);
   var botRows='';
-  botCap.forEach(function(r,i){botRows+=tblR([{v:rk(i,1)},{v:r.cap,b:1},{v:r.cm},{v:r.city},{v:r.n,r:1}],i%2);});
-  out+=wrap(cardH('▼  Bottom 10 Captains — Active Vehicles')+tbl(tblH([{t:'#'},{t:'Captain'},{t:'CM'},{t:'City'},{t:'Active',r:1}])+botRows));
+  botCap.forEach(function(r,i){botRows+=tblR([{v:rk(i,1)},{v:r.cap,b:1},{v:r.city},{v:r.n,r:1}],i%2);});
+  out+=wrap(cardH('▼  Bottom 10 Captains — Active Vehicles')+tbl(tblH([{t:'#'},{t:'Captain'},{t:'City'},{t:'Active',r:1}])+botRows));
 
   /* OEM panel */
   var oemMax=oemList.length>0?oemList[0].n:1;
