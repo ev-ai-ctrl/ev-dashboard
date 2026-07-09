@@ -2932,6 +2932,29 @@ try{
   try{ initM1MonthFilters(); }catch(e){console.warn("Init error [initM1MonthFilters();]:", e);}
 }catch(e){console.error("Dashboard init failed:", e);}
 
+
+// ── Tab switching handler ─────────────────────────────────────────────────
+(function(){
+  var btns = document.querySelectorAll(".tab-btn");
+  var panes = document.querySelectorAll(".tab-content");
+  btns.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var target = this.getAttribute("data-tab");
+      // toggle button active
+      btns.forEach(function(b){ b.classList.remove("active"); });
+      this.classList.add("active");
+      // toggle pane active
+      panes.forEach(function(p){ p.classList.remove("active"); });
+      var pane = document.getElementById("tab-" + target);
+      if(pane) pane.classList.add("active");
+      // lazy-init specific tabs
+      try{ if(target === "one-view"){ renderOneView(); } }catch(e){ console.error("OneView init:", e); }
+      try{ if(target === "redeployment"){ initRedeployment(); } }catch(e){ console.error("Redeployment init:", e); }
+    });
+  });
+})();
+// ─────────────────────────────────────────────────────────────────────────
+
 window.addEventListener("resize", function(){ renderChart(); renderExitChart(); });
 
 // ════════════════════════════════════════════════
