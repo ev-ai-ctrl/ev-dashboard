@@ -2626,6 +2626,8 @@ function renderOneView(){
   function tr2(cells,stripe){var s='<tr style="'+(stripe?'background:#253347':'')+'">'; cells.forEach(function(c){s+='<td style="padding:3px 8px;text-align:'+(c.r?'right':'left')+';font-size:10.5px;color:'+TXT+';border-bottom:1px solid #1e293b;white-space:nowrap'+(c.b?';font-weight:700':'')+'">'+c.v+'</td>';});return s+'</tr>';}
   function tfoot2(cells){var s='<tr style="background:#162032">';cells.forEach(function(c){s+='<td style="padding:3px 8px;text-align:'+(c.r?'right':'left')+';font-size:11px;color:'+HEAD+';font-weight:700;border-top:1px solid #475569">'+c.v+'</td>';});return s+'</tr>';}
 
+  function cityAbbr(c){var mp={'Bengaluru':'BLR','Delhi NCR':'NCR','Hyderabad':'HYD','Mumbai':'MUM'};return mp[c]||c;}
+
   var out='<div style="background:'+BG+';padding:10px;color:'+TXT+';font-family:inherit">';
   out+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
     +'<span style="font-size:12px;font-weight:700;color:'+ACC+';letter-spacing:.5px">ONE VIEW SNAPSHOT</span>'
