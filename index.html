@@ -2600,7 +2600,7 @@ function renderOneView(){
   if(NETADD.tl){Object.keys(NETADD.tl).forEach(function(cpk){if(cpk.indexOf('Unknown')>=0)return;var p=cpk.split('|');if(p.length<3)return;var a=naActiveAt(NETADD.tl[cpk],d1Idx)||0;if(a<=0)return;allCAP.push({city:p[0],cm:p[1],cap:p[2],n:a});});}
   allCAP.sort(function(a,b){return b.n-a.n;});
 
-  /* ── CM nets ── */
+  /* ── CM nets by period ── */
   var cmNet=[];
   if(NETADD.cm){Object.keys(NETADD.cm).forEach(function(cmk){if(cmk.indexOf('Unknown')>=0)return;var p=cmk.split('|');if(p.length<2)return;var cw=naNetIn(NETADD.cm[cmk],cwIdx)||0,lw=naNetIn(NETADD.cm[cmk],lwIdx)||0,lm=naNetIn(NETADD.cm[cmk],lmIdx)||0;if(cw===0&&lw===0&&lm===0)return;cmNet.push({city:p[0],cm:p[p.length-1],cw:cw,lw:lw,lm:lm});});}
 
@@ -2608,90 +2608,96 @@ function renderOneView(){
   var oemList=[],oemTot=0;
   if(typeof OWN_FLEET!=='undefined'&&OWN_FLEET&&OWN_FLEET.oem_counts){Object.keys(OWN_FLEET.oem_counts).forEach(function(o){oemList.push({oem:o,n:OWN_FLEET.oem_counts[o]});});oemList.sort(function(a,b){return b.n-a.n;});oemTot=oemList.reduce(function(s,o){return s+o.n;},0);}
 
-  /* ── Style constants ── */
+  /* ── Style ── */
   var BG='#0f172a',CB='#1e293b',CH='#0f4c5c',BD='1px solid #334155',
       POS='#34d399',NEG='#f87171',ACC='#38bdf8',MUT='#64748b',TXT='#e2e8f0',HEAD='#f1f5f9';
-
   function fmt(n){return Number(n).toLocaleString();}
   function nb(n){if(n>0)return '<span style="color:'+POS+';font-weight:700">+'+n+'</span>';if(n<0)return '<span style="color:'+NEG+';font-weight:700">'+n+'</span>';return '<span style="color:'+MUT+'">0</span>';}
-  function sbar(v,mx,col){var p=mx>0?Math.min(100,Math.round(v/mx*100)):0;return '<div style="background:#334155;border-radius:2px;height:5px;width:56px;display:inline-block;vertical-align:middle"><div style="background:'+col+';width:'+p+'%;height:100%;border-radius:2px"></div></div>';}
-  function rk(i,red){var bg=red?'#7f1d1d':'#1e3a5f',tc=red?'#fca5a5':'#93c5fd';return '<span style="display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;background:'+bg+';border-radius:50%;font-size:9px;font-weight:700;color:'+tc+'">'+(i+1)+'</span>';}
-  function cardH(t){return '<div style="padding:6px 12px;background:'+CH+';font-size:11px;font-weight:700;color:'+HEAD+';letter-spacing:.2px;border-bottom:'+BD+'">'+t+'</div>';}
-  function wrap(inner){return '<div style="background:'+CB+';border-radius:8px;border:'+BD+';overflow:hidden;display:flex;flex-direction:column">'+inner+'</div>';}
+  function sbar(v,mx,col){var p=mx>0?Math.min(100,Math.round(v/mx*100)):0;return '<div style="background:#334155;border-radius:2px;height:5px;width:52px;display:inline-block;vertical-align:middle"><div style="background:'+col+';width:'+p+'%;height:100%;border-radius:2px"></div></div>';}
+  function rk(i,red){var bg=red?'#7f1d1d':'#1e3a5f',tc=red?'#fca5a5':'#93c5fd';return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:'+bg+';border-radius:50%;font-size:9px;font-weight:700;color:'+tc+'">'+(i+1)+'</span>';}
+  function cardH(t,sub){return '<div style="padding:6px 10px;background:'+CH+';font-size:11px;font-weight:700;color:'+HEAD+';border-bottom:'+BD+'">'+(sub?'<div style="font-size:10px;color:'+MUT+';font-weight:400;margin-top:1px">'+sub+'</div>':'')+t+'</div>';}
+  function wrap(inner){return '<div style="background:'+CB+';border-radius:7px;border:'+BD+';overflow:hidden">'+inner+'</div>';}
   function tbl(inner){return '<table style="width:100%;border-collapse:collapse">'+inner+'</table>';}
-  function th(cols){var s='<tr>';cols.forEach(function(c){s+='<th style="padding:4px 8px;text-align:'+(c.r?'right':'left')+';font-size:10px;color:'+MUT+';font-weight:600;background:#162032;border-bottom:'+BD+';white-space:nowrap">'+c.t+'</th>';});return s+'</tr>';}
-  function tr(cells,stripe){var s='<tr style="'+(stripe?'background:#253347':'')+'">'; cells.forEach(function(c){s+='<td style="padding:4px 8px;text-align:'+(c.r?'right':'left')+';font-size:11px;color:'+TXT+';border-bottom:1px solid #1e293b;white-space:nowrap'+(c.b?';font-weight:700':'')+'">'+c.v+'</td>';});return s+'</tr>';}
-  function tfoot(cells){var s='<tr style="background:#162032">';cells.forEach(function(c){s+='<td style="padding:4px 8px;text-align:'+(c.r?'right':'left')+';font-size:11px;color:'+HEAD+';font-weight:700;border-top:1px solid #475569">'+c.v+'</td>';});return s+'</tr>';}
+  function th(cols){var s='<tr>';cols.forEach(function(c){s+='<th style="padding:3px 8px;text-align:'+(c.r?'right':'left')+';font-size:9px;color:'+MUT+';font-weight:600;background:#162032;border-bottom:'+BD+';white-space:nowrap">'+c.t+'</th>';});return s+'</tr>';}
+  function tr2(cells,stripe){var s='<tr style="'+(stripe?'background:#253347':'')+'">'; cells.forEach(function(c){s+='<td style="padding:4px 8px;text-align:'+(c.r?'right':'left')+';font-size:11px;color:'+TXT+';border-bottom:1px solid #1e293b;white-space:nowrap'+(c.b?';font-weight:700':'')+'">'+c.v+'</td>';});return s+'</tr>';}
+  function tfoot2(cells){var s='<tr style="background:#162032">';cells.forEach(function(c){s+='<td style="padding:4px 8px;text-align:'+(c.r?'right':'left')+';font-size:11px;color:'+HEAD+';font-weight:700;border-top:1px solid #475569">'+c.v+'</td>';});return s+'</tr>';}
 
   var out='<div style="background:'+BG+';padding:10px;color:'+TXT+';font-family:inherit">';
-  out+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
-  out+='<span style="font-size:12px;font-weight:700;color:'+ACC+';letter-spacing:.5px">ONE VIEW SNAPSHOT</span>';
-  out+='<span style="font-size:11px;color:'+MUT+'">D-1: '+d1Str+'</span></div>';
+  out+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+    +'<span style="font-size:12px;font-weight:700;color:'+ACC+';letter-spacing:.5px">ONE VIEW SNAPSHOT</span>'
+    +'<span style="font-size:10px;color:'+MUT+'">D-1: '+d1Str+'</span></div>';
 
-  /* ══ ROW 1: KPI cards (compact, fixed height) ══ */
+  /* ══ ROW 1: KPI strip ══ */
   var tDelta=tot-prevTot;
   out+='<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">';
-  /* Hero */
-  out+='<div style="background:linear-gradient(135deg,#1e3a8a,#0369a1);border-radius:8px;padding:10px 14px;border:1px solid #1e40af">';
-  out+='<div style="font-size:9px;color:#bae6fd;text-transform:uppercase;letter-spacing:.5px">Total Active Fleet</div>';
-  out+='<div style="font-size:34px;font-weight:800;color:#fff;line-height:1.1;margin:2px 0">'+fmt(tot)+'</div>';
-  out+='<div style="font-size:11px;color:'+(tDelta>=0?POS:NEG)+'">'+(tDelta>=0?'▲ +':'▼ ')+Math.abs(tDelta)+' vs yesterday &nbsp;&middot;&nbsp; <span style="color:#bae6fd">'+cities.length+' cities</span></div>';
-  out+='</div>';
+  out+='<div style="background:linear-gradient(135deg,#1e3a8a,#0369a1);border-radius:7px;padding:9px 13px;border:1px solid #1e40af">'
+    +'<div style="font-size:9px;color:#bae6fd;text-transform:uppercase;letter-spacing:.5px">Total Active Fleet</div>'
+    +'<div style="font-size:32px;font-weight:800;color:#fff;line-height:1.1;margin:1px 0">'+fmt(tot)+'</div>'
+    +'<div style="font-size:10px;color:'+(tDelta>=0?POS:NEG)+'">'+(tDelta>=0?'▲ +':'▼ ')+Math.abs(tDelta)+' vs yesterday'
+    +'&nbsp;&middot;&nbsp;<span style="color:#bae6fd">'+cities.length+' cities · '+d1Str+'</span></div>'
+    +'</div>';
   var cityColors=['#0ea5e9','#8b5cf6','#f59e0b','#10b981'];
-  cAct.forEach(function(row2,i){
-    var d2=row2.n-(prev2[row2.c]||0),pct=tot>0?(row2.n/tot*100).toFixed(1):0;
-    var col=cityColors[i%cityColors.length];
-    out+='<div style="background:'+CB+';border-radius:8px;padding:10px 12px;border:'+BD+';border-top:3px solid '+col+'">';
-    out+='<div style="font-size:9px;color:'+MUT+';text-transform:uppercase;letter-spacing:.5px">'+row2.c+'</div>';
-    out+='<div style="font-size:24px;font-weight:800;color:'+HEAD+';line-height:1.1;margin:2px 0">'+fmt(row2.n)+'</div>';
-    out+='<div style="font-size:10px;color:'+(d2>=0?POS:NEG)+'">'+(d2>=0?'▲ +':'▼ ')+Math.abs(d2)+'&nbsp;<span style="color:'+MUT+'">'+pct+'%</span></div>';
-    out+='<div style="background:#334155;border-radius:2px;height:3px;margin-top:4px"><div style="background:'+col+';width:'+pct+'%;height:100%;border-radius:2px"></div></div>';
-    out+='</div>';
+  cAct.forEach(function(row,i){
+    var d2=row.n-(prev2[row.c]||0),pct=tot>0?(row.n/tot*100).toFixed(1):0,col=cityColors[i%4];
+    out+='<div style="background:'+CB+';border-radius:7px;padding:9px 11px;border:'+BD+';border-top:3px solid '+col+'">'
+      +'<div style="font-size:9px;color:'+MUT+';text-transform:uppercase;letter-spacing:.4px">'+row.c+'</div>'
+      +'<div style="font-size:22px;font-weight:800;color:'+HEAD+';line-height:1.15;margin:1px 0">'+fmt(row.n)+'</div>'
+      +'<div style="font-size:10px;color:'+(d2>=0?POS:NEG)+'">'+(d2>=0?'▲ +':'▼ ')+Math.abs(d2)+'&nbsp;<span style="color:'+MUT+'">'+pct+'%</span></div>'
+      +'<div style="background:#334155;border-radius:2px;height:3px;margin-top:4px"><div style="background:'+col+';width:'+pct+'%;height:100%;border-radius:2px"></div></div>'
+      +'</div>';
   });
-  out+='</div>'; /* end row 1 */
+  out+='</div>';
 
-  /* ══ ROW 2: 4 columns, fills remaining space ══ */
-  out+='<div style="display:grid;grid-template-columns:1.1fr 1fr 1fr 0.85fr;gap:8px">';
+  /* ══ ROW 2: Net Additions city + CW/LW/LM CM performance (4 cols) ══ */
+  out+='<div style="display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">';
 
-  /* ── COL A: Net Additions (city table + CM period lists) ── */
-  var netBody='';var tCW=0,tLW=0,tLM=0;
-  cAct.forEach(function(row2,i){var cn=cNet[row2.c]||{cw:0,lw:0,lm:0};tCW+=cn.cw;tLW+=cn.lw;tLM+=cn.lm;netBody+=tr([{v:row2.c,b:1},{v:nb(cn.cw),r:1},{v:nb(cn.lw),r:1},{v:nb(cn.lm),r:1}],i%2);});
-  netBody+=tfoot([{v:'Total'},{v:nb(tCW),r:1},{v:nb(tLW),r:1},{v:nb(tLM),r:1}]);
-  var netSec=tbl(th([{t:'City'},{t:cwLab,r:1},{t:lwLab,r:1},{t:lmLab,r:1}])+netBody);
+  /* Net Add City */
+  var netBody='',tCW=0,tLW=0,tLM=0;
+  cAct.forEach(function(row,i){var cn=cNet[row.c]||{cw:0,lw:0,lm:0};tCW+=cn.cw;tLW+=cn.lw;tLM+=cn.lm;netBody+=tr2([{v:row.c,b:1},{v:nb(cn.cw),r:1},{v:nb(cn.lw),r:1},{v:nb(cn.lm),r:1}],i%2);});
+  netBody+=tfoot2([{v:'Total'},{v:nb(tCW),r:1},{v:nb(tLW),r:1},{v:nb(tLM),r:1}]);
+  out+=wrap(cardH('Net Additions — City Split')+tbl(th([{t:'City'},{t:cwLab,r:1},{t:lwLab,r:1},{t:lmLab,r:1}])+netBody));
 
-  /* Top 3 CM nets per period as compact ranked lists */
-  function cmPeriodList(sorted,key,label){
-    var top=sorted.slice(0,3);if(!top.length)return '';
+  /* CW / LW / LM CM performance — separate cards */
+  function cmPerfCard(label, sorted, key){
+    var top=sorted.slice(0,5);
     var rows='';
-    top.forEach(function(r,i){var n=r[key];rows+='<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 10px;'+(i%2?'background:#253347':'')+';border-bottom:1px solid #1e293b">'+'<span style="font-size:10px;color:'+TXT+'">'+(i+1)+'. <strong>'+r.cm+'</strong> <span style="color:'+MUT+';">('+r.city+')</span></span>'+'<span style="font-size:11px;font-weight:700;color:'+(n>0?POS:n<0?NEG:MUT)+'">'+( n>0?'+':'')+n+'</span>'+'</div>';});
-    return '<div style="padding:4px 10px;background:#162032;font-size:9px;font-weight:700;color:'+ACC+';letter-spacing:.3px;border-top:'+BD+'">'+label+'</div>'+rows;
+    top.forEach(function(r,i){var n=r[key];rows+=tr2([{v:rk(i)},{v:'<strong>'+r.cm+'</strong>'},{v:r.city},{v:nb(n),r:1}],i%2);});
+    return wrap(cardH(label)+tbl(th([{t:'#'},{t:'CM Name'},{t:'City'},{t:'Net',r:1}])+rows));
   }
-  var cwS=cmNet.slice().sort(function(a,b){return b.cw-a.cw;}),lwS=cmNet.slice().sort(function(a,b){return b.lw-a.lw;}),lmS=cmNet.slice().sort(function(a,b){return b.lm-a.lm;});
-  out+=wrap(cardH('Net Additions — City Split')+netSec+cmPeriodList(cwS,'cw',cwLab)+cmPeriodList(lwS,'lw',lwLab)+cmPeriodList(lmS,'lm',lmLab));
+  var cwS=cmNet.slice().sort(function(a,b){return b.cw-a.cw;});
+  var lwS=cmNet.slice().sort(function(a,b){return b.lw-a.lw;});
+  var lmS=cmNet.slice().sort(function(a,b){return b.lm-a.lm;});
+  out+=cmPerfCard(cwLab,cwS,'cw');
+  out+=cmPerfCard(lwLab,lwS,'lw');
+  out+=cmPerfCard(lmLab,lmS,'lm');
+  out+='</div>';
 
-  /* ── COL B: Top 8 CMs ── */
+  /* ══ ROW 3: Top CMs | Top Captains | Bottom Captains + OEM ══ */
+  out+='<div style="display:grid;grid-template-columns:1fr 1fr 0.85fr;gap:8px">';
+
+  /* Top 8 CMs */
   var cmMax=allCM.length>0?allCM[0].n:1,cmRows='';
-  allCM.slice(0,8).forEach(function(r,i){cmRows+=tr([{v:rk(i)},{v:r.cm,b:1},{v:r.city},{v:sbar(r.n,cmMax,ACC)},{v:r.n,r:1,b:1}],i%2);});
-  out+=wrap(cardH('▲ Top 8 CMs — Active')+tbl(th([{t:'#'},{t:'CM Name'},{t:'City'},{t:''},{t:'Active',r:1}])+cmRows));
+  allCM.slice(0,8).forEach(function(r,i){cmRows+=tr2([{v:rk(i)},{v:'<strong>'+r.cm+'</strong>'},{v:r.city},{v:sbar(r.n,cmMax,ACC)},{v:r.n,r:1,b:1}],i%2);});
+  out+=wrap(cardH('▲ Top 8 CMs — Active Vehicles')+tbl(th([{t:'#'},{t:'CM Name'},{t:'City'},{t:''},{t:'Active',r:1}])+cmRows));
 
-  /* ── COL C: Top 8 Captains ── */
+  /* Top 8 Captains */
   var capMax=allCAP.length>0?allCAP[0].n:1,capRows='';
-  allCAP.slice(0,8).forEach(function(r,i){capRows+=tr([{v:rk(i)},{v:r.cap,b:1},{v:r.city},{v:sbar(r.n,capMax,POS)},{v:r.n,r:1,b:1}],i%2);});
-  out+=wrap(cardH('▲ Top 8 Captains — Active')+tbl(th([{t:'#'},{t:'Captain'},{t:'City'},{t:''},{t:'Active',r:1}])+capRows));
+  allCAP.slice(0,8).forEach(function(r,i){capRows+=tr2([{v:rk(i)},{v:'<strong>'+r.cap+'</strong>'},{v:r.city},{v:sbar(r.n,capMax,POS)},{v:r.n,r:1,b:1}],i%2);});
+  out+=wrap(cardH('▲ Top 8 Captains — Active Vehicles')+tbl(th([{t:'#'},{t:'Captain'},{t:'City'},{t:''},{t:'Active',r:1}])+capRows));
 
-  /* ── COL D: Bottom 8 Captains + OEM ── */
-  var botCap=allCAP.slice().reverse().slice(0,8),botRows='';
-  botCap.forEach(function(r,i){botRows+=tr([{v:rk(i,1)},{v:r.cap,b:1},{v:r.city},{v:r.n,r:1}],i%2);});
-  var oemMax=oemList.length>0?oemList[0].n:1,oemBody='';
-  oemList.forEach(function(r,i){oemBody+=tr([{v:'<strong>'+r.oem+'</strong>'},{v:sbar(r.n,oemMax,ACC)},{v:fmt(r.n),r:1,b:1}],i%2);});
-  oemBody+=tfoot([{v:'Total Own Fleet'},{v:''},{v:fmt(oemTot),r:1}]);
+  /* Bottom 6 Captains + OEM */
+  var botCap=allCAP.slice().reverse().slice(0,6),botRows='';
+  botCap.forEach(function(r,i){botRows+=tr2([{v:rk(i,1)},{v:'<strong>'+r.cap+'</strong>'},{v:r.city},{v:r.n,r:1}],i%2);});
+  var oemMax=oemList.length>0?oemList[0].n:1,oemRows='';
+  oemList.forEach(function(r,i){oemRows+=tr2([{v:'<strong>'+r.oem+'</strong>'},{v:sbar(r.n,oemMax,ACC)},{v:fmt(r.n),r:1,b:1}],i%2);});
+  oemRows+=tfoot2([{v:'Total Own Fleet'},{v:''},{v:fmt(oemTot),r:1}]);
   out+=wrap(
-    cardH('▼ Bottom 8 Captains — Active')+tbl(th([{t:'#'},{t:'Captain'},{t:'City'},{t:'Active',r:1}])+botRows)+
-    cardH('OEM — Own Purchase Fleet')+tbl(th([{t:'OEM'},{t:''},{t:'Count',r:1}])+oemBody)
+    cardH('▼ Bottom 6 Captains — Active')+tbl(th([{t:'#'},{t:'Captain'},{t:'City'},{t:'Active',r:1}])+botRows)+
+    cardH('OEM — Own Purchase Count')+tbl(th([{t:'OEM'},{t:''},{t:'Count',r:1}])+oemRows)
   );
 
-  out+='</div>'; /* end row 2 */
-  out+='</div>'; /* end container */
+  out+='</div>';
+  out+='</div>';
   document.getElementById('oneViewContent').innerHTML=out;
   }catch(e){document.getElementById('oneViewContent').innerHTML='<div style="color:#f87171;padding:20px;background:#1e293b;border-radius:8px">Error: '+e.message+'</div>';console.error('OneView:',e);}
 }
