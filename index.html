@@ -2673,7 +2673,7 @@ function renderOneView(){
   out+='</div>';
 
   /* ══ ROW 3: Top CMs | Top Captains | Bottom Captains | OEM (4 cols) ══ */
-  out+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 0.75fr;gap:8px">';
+  out+='<div style="display:grid;grid-template-columns:0.85fr 1.15fr 1.15fr 0.6fr;gap:8px">';
 
   /* Top 10 CMs */
   var cmMax=allCM.length>0?allCM[0].n:1,cmRows='';
@@ -2682,8 +2682,8 @@ function renderOneView(){
 
   /* Top 10 Captains */
   var capMax=allCAP.length>0?allCAP[0].n:1,capRows='';
-  allCAP.slice(0,10).forEach(function(r,i){capRows+=tr2([{v:rk(i)},{v:'<strong>'+r.cap+'</strong>'},{v:r.cm},{v:r.city},{v:sbar(r.n,capMax,POS)},{v:r.n,r:1,b:1}],i%2);});
-  out+=wrap(cardH('▲ Top 10 Captains — Active')+tbl(th([{t:'#'},{t:'Captain'},{t:'CM'},{t:'City'},{t:''},{t:'Active',r:1}])+capRows));
+  allCAP.slice(0,10).forEach(function(r,i){capRows+=tr2([{v:rk(i)},{v:'<strong>'+r.cap+'</strong>'},{v:r.cm},{v:r.city},{v:r.n,r:1,b:1}],i%2);});
+  out+=wrap(cardH('▲ Top 10 Captains — Active')+tbl(th([{t:'#'},{t:'Captain'},{t:'CM'},{t:'City'},{t:'Active',r:1}])+capRows));
 
   /* Bottom 10 Captains */
   var botCap=allCAP.slice().reverse().slice(0,10),botRows='';
