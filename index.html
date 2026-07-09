@@ -2661,8 +2661,10 @@ function renderOneView(){
   out+=wrap(cardH('Net Additions — City')+tbl(th([{t:'City'},{t:cwLab,r:1},{t:lwLab,r:1},{t:lmLab,r:1}])+netBody));
 
   function cmPerfCard(label,sorted,key){
+    var top=sorted.filter(function(r){return r[key]>0;}).slice(0,5);
+    if(top.length===0)return wrap(cardH(label)+'<div style="padding:10px 12px;font-size:10px;color:'+MUT+'">No net additions this period</div>');
     var rows='';
-    sorted.slice(0,5).forEach(function(r,i){rows+=tr2([{v:rk(i)},{v:'<strong>'+r.cm+'</strong>'},{v:r.city},{v:nb(r[key]),r:1}],i%2);});
+    top.forEach(function(r,i){rows+=tr2([{v:rk(i)},{v:'<strong>'+r.cm+'</strong>'},{v:r.city},{v:nb(r[key]),r:1}],i%2);});
     return wrap(cardH(label)+tbl(th([{t:'#'},{t:'CM'},{t:'City'},{t:'Net',r:1}])+rows));
   }
   out+=cmPerfCard(cwLab,cmNet.slice().sort(function(a,b){return b.cw-a.cw;}),'cw');
