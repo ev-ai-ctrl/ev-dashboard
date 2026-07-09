@@ -2586,9 +2586,9 @@ function renderOneView(){
   cities.forEach(function(c){var n=latest[c]||0;cAct.push({c:c,n:n});tot+=n;prevTot+=(prev2[c]||0);});
   cAct.sort(function(a,b){return b.n-a.n;});
 
-  /* ── City nets ── */
+  /* ── City nets — use NETADD.city (all records, including Unknown CM) ── */
   var cNet={};cities.forEach(function(c){cNet[c]={cw:0,lw:0,lm:0};});
-  if(NETADD.cm){Object.keys(NETADD.cm).forEach(function(cmk){if(cmk.indexOf('Unknown')>=0)return;var city=cmk.split('|')[0];if(!cNet[city])return;cNet[city].cw+=naNetIn(NETADD.cm[cmk],cwIdx)||0;cNet[city].lw+=naNetIn(NETADD.cm[cmk],lwIdx)||0;cNet[city].lm+=naNetIn(NETADD.cm[cmk],lmIdx)||0;});}
+  if(NETADD.city){cities.forEach(function(c){if(!NETADD.city[c])return;cNet[c].cw=naNetIn(NETADD.city[c],cwIdx)||0;cNet[c].lw=naNetIn(NETADD.city[c],lwIdx)||0;cNet[c].lm=naNetIn(NETADD.city[c],lmIdx)||0;});}
 
   /* ── Top CMs ── */
   var allCM=[];
