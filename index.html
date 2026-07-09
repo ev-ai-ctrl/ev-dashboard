@@ -108,6 +108,7 @@
   </div>
 
   <div class="tab-nav">
+    <button class="tab-btn" data-tab="one-view">One View</button>
     <button class="tab-btn active" data-tab="active-net">Active _Net</button>
     <button class="tab-btn" data-tab="aon-attrition">AON _Attrition</button>
     <button class="tab-btn" data-tab="span-ratio">Span Ratio</button>
@@ -117,7 +118,12 @@
 
 
 
-  <div class="tab-content active" id="tab-active-net">
+  <div class="tab-content" id="tab-one-view">
+  <div id="oneViewContent" style="padding:4px 0">
+    <div style="color:#9ca3af;padding:40px;text-align:center">Loading One View...</div>
+  </div>
+</div>
+<div class="tab-content active" id="tab-active-net">
   <div class="kpi-grid" id="kpiGrid"></div>
 
   <div class="section">
@@ -2554,6 +2560,168 @@ renderVertComp();
 }
 
 // ---------- Tab navigation ----------
+function renderOneView(){
+  var dates=NETADD.dates, d1Idx=dates.length-1, d1Str=dates[d1Idx];
+  var d1Date=new Date(d1Str+'T00:00:00');
+  var dow=d1Date.getDay(), dMon=(dow===0)?6:dow-1;
+  var cwMon=new Date(d1Date); cwMon.setDate(d1Date.getDate()-dMon);
+  var lwMon=new Date(cwMon); lwMon.setDate(cwMon.getDate()-7);
+  var lwSun=new Date(cwMon); lwSun.setDate(cwMon.getDate()-1);
+  var lmY=d1Date.getMonth()===0?d1Date.getFullYear()-1:d1Date.getFullYear();
+  var lmM=d1Date.getMonth()===0?12:d1Date.getMonth();
+  var lmFirst=new Date(lmY,lmM-1,1), lmLast=new Date(lmY,lmM,0);
+  function toStr(d){return d.toISOString().slice(0,10);}
+  function getIdx(s,e){var st=new Set();for(var i=0;i<dates.length;i++)if(dates[i]>=s&&dates[i]<=e)st.add(i);return st;}
+  var cwIdx=getIdx(toStr(cwMon),d1Str), lwIdx=getIdx(toStr(lwMon),toStr(lwSun)), lmIdx=getIdx(toStr(lmFirst),toStr(lmLast));
+  var MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function pLabel(s,e){return s.getDate()+' '+MN[s.getMonth()]+' – '+e.getDate()+' '+MN[e.getMonth()];}
+  var cwLab='CW ('+pLabel(cwMon,d1Date)+')', lwLab='LW ('+pLabel(lwMon,lwSun)+')';
+  var lmLab='LM ('+MN[lmM-1]+' '+lmY+')';
+  function fN(n){if(n>0)return '<span style="color:#16a34a;font-weight:600">+'+n+'</span>';if(n<0)return '<span style="color:#dc2626;font-weight:600">'+n+'</span>';return '<span style="color:#9ca3af">0</span>';}
+  function fmt(n){return n.toLocaleString();}
+
+  /* helpers */
+  function TH(t,num){return '<th style="background:#0f766e;color:#fff;padding:8px 12px;text-align:'+(num?'right':'left')+';font-size:12px;font-weight:600;white-space:nowrap">'+t+'</th>';}
+  function TD(v,num,bold){return '<td style="padding:7px 12px;font-size:13px;text-align:'+(num?'right':'left')+';border-bottom:1px solid #f3f4f6'+(bold?';font-weight:700':'')+'">'+(bold?'<strong>'+v+'</strong>':v)+'</td>';}
+  function TFoot(cells){return '<tr style="background:#f9fafb">'+cells+'</tr>';}
+  function tbl(inner){return '<div style="overflow-x:auto;border-radius:8px;border:1px solid #e5e7eb;margin-bottom:4px"><table style="width:100%;border-collapse:collapse">'+inner+'</table></div>';}
+  function sec(t){return '<div style="font-size:14px;font-weight:700;color:#1e3a8a;margin:22px 0 8px;padding-left:2px">'+t+'</div>';}
+  function rk(i){return '<span style="display:inline-block;width:22px;height:22px;background:#dbeafe;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#1d4ed8">'+(i+1)+'</span>';}
+
+  var out='';
+
+  /* 1. City Active */
+  var latest=TREND.data[TREND.data.length-1]||{}, prev=TREND.data[TREND.data.length-2]||latest;
+  var cities=TREND.cities||['Bengaluru','Delhi NCR','Hyderabad','Mumbai'];
+  var cAct=[], tot=0;
+  cities.forEach(function(c){var n=latest[c]||0;cAct.push({c:c,n:n});tot+=n;});
+  cAct.sort(function(a,b){return b.n-a.n;});
+  out+=sec('1. City-wise Active Vehicles — D-1: '+d1Str);
+  var r1=TH('City')+TH('Active',1)+TH('vs Yesterday',1)+TH('% of Total',1);
+  cAct.forEach(function(row){
+    var d=row.n-(prev[row.c]||0);
+    r1+=TD(row.c)+TD(fmt(row.n),1,1)+TD(fN(d),1)+TD(tot>0?(row.n/tot*100).toFixed(1)+'%':'—',1);
+  });
+  var tBorder='border-top:2px solid #e5e7eb;';
+  r1+='<tr>'+TD('<strong>Total</strong>')+
+      '<td style="padding:7px 12px;font-size:13px;text-align:right;'+tBorder+'font-weight:700"><strong>'+fmt(tot)+'</strong></td>'+
+      '<td style="padding:7px 12px;font-size:13px;text-align:right;'+tBorder+'">'+fN(tot-(Object.values(prev).reduce(function(s,v){return s+v;},0)))+'</td>'+
+      '<td style="padding:7px 12px;font-size:13px;text-align:right;'+tBorder+'">100%</td></tr>';
+  out+=tbl('<thead><tr>'+r1+'</tr></thead>');
+
+  /* 2. City Net Additions */
+  var cNet={};
+  cities.forEach(function(c){cNet[c]={cw:0,lw:0,lm:0};});
+  if(NETADD.city_to_cms){
+    cities.forEach(function(city){
+      (NETADD.city_to_cms[city]||[]).forEach(function(cmk){
+        var rows=NETADD.cm[cmk]; if(!rows)return;
+        cNet[city].cw+=naNetIn(rows,cwIdx);
+        cNet[city].lw+=naNetIn(rows,lwIdx);
+        cNet[city].lm+=naNetIn(rows,lmIdx);
+      });
+    });
+  }
+  out+=sec('2. Net Additions by Period — City Split');
+  var totCW=0,totLW=0,totLM=0;
+  var r2=TH('City')+TH(cwLab,1)+TH(lwLab,1)+TH(lmLab,1);
+  cAct.forEach(function(row){
+    var cn=cNet[row.c]||{cw:0,lw:0,lm:0};
+    totCW+=cn.cw;totLW+=cn.lw;totLM+=cn.lm;
+    r2+=TD(row.c)+TD(fN(cn.cw),1)+TD(fN(cn.lw),1)+TD(fN(cn.lm),1);
+  });
+  r2+='<tr>'+TD('<strong>Total</strong>')+
+      '<td style="padding:7px 12px;font-size:13px;text-align:right;'+tBorder+'">'+fN(totCW)+'</td>'+
+      '<td style="padding:7px 12px;font-size:13px;text-align:right;'+tBorder+'">'+fN(totLW)+'</td>'+
+      '<td style="padding:7px 12px;font-size:13px;text-align:right;'+tBorder+'">'+fN(totLM)+'</td></tr>';
+  out+=tbl('<thead><tr>'+r2+'</tr></thead>');
+
+  /* 3. Top 10 CMs Active */
+  var allCM=[];
+  if(NETADD.cm){
+    Object.keys(NETADD.cm).forEach(function(cmk){
+      if(cmk.indexOf('Unknown')>=0)return;
+      var p=cmk.split('|'); if(p.length<2)return;
+      var act=naActiveAt(NETADD.cm[cmk],d1Idx)||0; if(act<=0)return;
+      allCM.push({city:p[0],cm:p[p.length-1],n:act});
+    });
+  }
+  allCM.sort(function(a,b){return b.n-a.n;});
+  out+=sec('3. Top 10 CMs — Active Vehicles');
+  var r3=TH('#')+TH('CM')+TH('City')+TH('Active',1);
+  allCM.slice(0,10).forEach(function(row,i){r3+=TD(rk(i))+TD(row.cm)+TD(row.city)+TD(fmt(row.n),1,1);});
+  out+=tbl('<thead><tr>'+r3+'</tr></thead>');
+
+  /* 4. Top 10 Captains Active */
+  var allCAP=[];
+  if(NETADD.tl){
+    Object.keys(NETADD.tl).forEach(function(cpk){
+      if(cpk.indexOf('Unknown')>=0)return;
+      var p=cpk.split('|'); if(p.length<3)return;
+      var act=naActiveAt(NETADD.tl[cpk],d1Idx)||0; if(act<=0)return;
+      allCAP.push({city:p[0],cm:p[1],cap:p[2],n:act});
+    });
+  }
+  allCAP.sort(function(a,b){return b.n-a.n;});
+  out+=sec('4. Top 10 Captains — Active Vehicles');
+  var r4=TH('#')+TH('Captain')+TH('CM')+TH('City')+TH('Active',1);
+  allCAP.slice(0,10).forEach(function(row,i){r4+=TD(rk(i))+TD(row.cap)+TD(row.cm)+TD(row.city)+TD(fmt(row.n),1,1);});
+  out+=tbl('<thead><tr>'+r4+'</tr></thead>');
+
+  /* 5. Bottom 10 Captains Active */
+  out+=sec('5. Bottom 10 Captains — Active Vehicles (lowest)');
+  var r5=TH('#')+TH('Captain')+TH('CM')+TH('City')+TH('Active',1);
+  allCAP.slice().reverse().slice(0,10).forEach(function(row,i){r5+=TD(rk(i))+TD(row.cap)+TD(row.cm)+TD(row.city)+TD(row.n,1);});
+  out+=tbl('<thead><tr>'+r5+'</tr></thead>');
+
+  /* 6. Top 10 CMs Net Additions */
+  var cmNet=[];
+  if(NETADD.cm){
+    Object.keys(NETADD.cm).forEach(function(cmk){
+      if(cmk.indexOf('Unknown')>=0)return;
+      var p=cmk.split('|'); if(p.length<2)return;
+      var cw=naNetIn(NETADD.cm[cmk],cwIdx)||0;
+      var lw=naNetIn(NETADD.cm[cmk],lwIdx)||0;
+      var lm=naNetIn(NETADD.cm[cmk],lmIdx)||0;
+      if(cw===0&&lw===0&&lm===0)return;
+      cmNet.push({city:p[0],cm:p[p.length-1],cw:cw,lw:lw,lm:lm});
+    });
+  }
+  cmNet.sort(function(a,b){return b.cw-a.cw;});
+  out+=sec('6. Top 10 CMs — Net Additions by Period');
+  var r6=TH('#')+TH('CM')+TH('City')+TH(cwLab,1)+TH(lwLab,1)+TH(lmLab,1);
+  cmNet.slice(0,10).forEach(function(row,i){r6+=TD(rk(i))+TD(row.cm)+TD(row.city)+TD(fN(row.cw),1)+TD(fN(row.lw),1)+TD(fN(row.lm),1);});
+  out+=tbl('<thead><tr>'+r6+'</tr></thead>');
+
+  /* 7. Top OEM Own Vehicle */
+  out+=sec('7. Top OEM — Own Purchase Vehicle Count');
+  if(typeof OWN_FLEET!=='undefined'&&OWN_FLEET&&OWN_FLEET.oem_counts){
+    var oemList=[]; var oemCities=OWN_FLEET.cities||[];
+    Object.keys(OWN_FLEET.oem_counts).forEach(function(oem){oemList.push({oem:oem,n:OWN_FLEET.oem_counts[oem]});});
+    oemList.sort(function(a,b){return b.n-a.n;});
+    var oemTot=oemList.reduce(function(s,o){return s+o.n;},0);
+    var r7=TH('#')+TH('OEM')+TH('Total',1);
+    oemCities.forEach(function(c){r7+=TH(c,1);});
+    oemList.forEach(function(row,i){
+      r7+=TD(rk(i))+'<td style="padding:7px 12px;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">'+row.oem+'</td>'+TD(fmt(row.n),1,1);
+      oemCities.forEach(function(c){var cv=(OWN_FLEET.city_oem&&OWN_FLEET.city_oem[c]&&OWN_FLEET.city_oem[c][row.oem])||0;r7+=TD(cv>0?cv:'—',1);});
+    });
+    /* total row */
+    r7+='<tr><td colspan="2" style="padding:7px 12px;font-size:13px;font-weight:700;border-top:2px solid #e5e7eb"><strong>Total</strong></td>'+
+        '<td style="padding:7px 12px;font-size:13px;text-align:right;font-weight:700;border-top:2px solid #e5e7eb"><strong>'+oemTot+'</strong></td>';
+    oemCities.forEach(function(c){
+      var ct=0;if(OWN_FLEET.city_oem&&OWN_FLEET.city_oem[c])Object.keys(OWN_FLEET.city_oem[c]).forEach(function(o){ct+=OWN_FLEET.city_oem[c][o]||0;});
+      r7+='<td style="padding:7px 12px;font-size:13px;text-align:right;font-weight:700;border-top:2px solid #e5e7eb"><strong>'+ct+'</strong></td>';
+    });
+    r7+='</tr>';
+    out+=tbl('<thead><tr>'+r7+'</tr></thead>');
+  } else {
+    out+='<div style="color:#9ca3af;padding:20px">Own vehicle data not available.</div>';
+  }
+
+  document.getElementById('oneViewContent').innerHTML=out;
+}
+
 document.querySelectorAll(".tab-btn").forEach(function(btn){
   btn.addEventListener("click", function(){
     var target = this.getAttribute("data-tab");
@@ -2563,6 +2731,7 @@ document.querySelectorAll(".tab-btn").forEach(function(btn){
     document.getElementById("tab-" + target).classList.add("active");
     // Re-render charts on tab switch (in case they were hidden during initial render)
     try{ if(target === "redeployment"){ initRedeployment(); } }catch(e){console.warn("Redeploy init:", e);}
+    try{ if(target === "one-view"){ renderOneView(); } }catch(e){console.warn("OneView:", e);}
     try{ if(target === "active-net"){ renderChart(); renderExitChart(); } }catch(e){}
   });
 });
