@@ -108,8 +108,8 @@
   </div>
 
   <div class="tab-nav">
-    <button class="tab-btn" data-tab="one-view">One View</button>
-    <button class="tab-btn active" data-tab="active-net">Active _Net</button>
+    <button class="tab-btn active" data-tab="one-view">One View</button>
+    <button class="tab-btn" data-tab="active-net">Active _Net</button>
     <button class="tab-btn" data-tab="aon-attrition">AON _Attrition</button>
     <button class="tab-btn" data-tab="span-ratio">Span Ratio</button>
     <button class="tab-btn" data-tab="own-fleet">Own Vehicle</button>
@@ -118,12 +118,12 @@
 
 
 
-  <div class="tab-content" id="tab-one-view">
+  <div class="tab-content active" id="tab-one-view">
   <div id="oneViewContent" style="padding:4px 0">
     <div style="color:#9ca3af;padding:40px;text-align:center">Loading One View...</div>
   </div>
 </div>
-<div class="tab-content active" id="tab-active-net">
+<div class="tab-content" id="tab-active-net">
   <div class="kpi-grid" id="kpiGrid"></div>
 
   <div class="section">
@@ -2947,6 +2947,7 @@ try{
 })();
 // ─────────────────────────────────────────────────────────────────────────
 
+window.addEventListener("load", function(){ try{ renderOneView(); }catch(e){ console.error(e); } });
 window.addEventListener("resize", function(){ renderChart(); renderExitChart(); });
 
 // ════════════════════════════════════════════════
