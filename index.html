@@ -195,6 +195,7 @@
         <select id="mtdMonth"></select>
         <span class="filter-label" style="color:#1e3a8a">City</span>
         <select id="mtdCity"></select>
+        <button onclick="exportMtdExcel()" style="margin-left:12px;padding:5px 14px;background:#1e3a8a;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer" title="Download as Excel">&#8595; Excel</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -3091,10 +3092,13 @@ function renderMtdNetAdd(){
       var dojInfo = getDoj(c.cap);
       var dojStr  = dojInfo ? fmtDoj(dojInfo.doj) : '';
       var age     = dojInfo ? ageing(dojInfo.doj)  : '';
+      // Use real name from DOJ file for "Captain XXXXX" entries
+      var dispName = c.cap;
+      if(dojInfo && dojInfo.name && /^Captain\s+\d+$/i.test(c.cap)) dispName = dojInfo.name;
 
       out += '<tr>';
       out += '<td '+tdBase+'">' + cm + '</td>';
-      out += '<td '+tdBase+'">' + c.cap + '</td>';
+      out += '<td '+tdBase+'">' + dispName + '</td>';
       out += '<td '+tdBase+';text-align:center;white-space:nowrap">' + dojStr + '</td>';
       out += '<td '+tdBase+';text-align:center">' + age + '</td>';
       out += '<td '+tdBase+';text-align:center;font-weight:600">' + active + '</td>';
@@ -3186,9 +3190,176 @@ function initMtdNetAdd(){
   cel.addEventListener('change', renderMtdNetAdd);
   renderMtdNetAdd();
 }
+
+
+function exportMtdExcel(){
+  var yr   = document.getElementById('mtdYear').value;
+  var mo   = document.getElementById('mtdMonth').value;
+  var city = document.getElementById('mtdCity').value;
+  var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var moName = MONTHS[parseInt(mo)-1];
+
+  var dates  = NETADD.dates;
+  var d1Idx  = dates.length - 1;
+  var ym     = yr + '-' + (mo < 10 ? '0' : '') + mo;
+  var monthIdxSet = {}, ftdIdx = -1;
+  for(var i=0;i<dates.length;i++){
+    if(dates[i].slice(0,7)===ym){ monthIdxSet[i]=true; if(i>ftdIdx)ftdIdx=i; }
+  }
+
+  var prefix = city+'|';
+  var allKeys = (NETADD.active_captains||[]).filter(function(k){return k.indexOf(prefix)===0;});
+  var cmMap={};
+  allKeys.forEach(function(key){
+    var p=key.split('|'),cm=p[1],cap=p[2];
+    if(!cmMap[cm])cmMap[cm]=[];cmMap[cm].push({cap:cap,key:key});
+  });
+
+  var byName=(CAPTAIN_DOJ&&CAPTAIN_DOJ.by_name)||{};
+  var byUid =(CAPTAIN_DOJ&&CAPTAIN_DOJ.by_uid) ||{};
+  function getDoj(n){
+    var lc=n.toLowerCase().trim();
+    if(byName[lc])return byName[lc];
+    var m=n.match(/^Captain\s+(\d+)$/i);
+    if(m&&byUid[m[1]])return byUid[m[1]];
+    return null;
+  }
+  function fmtD(doj){if(!doj)return'';var p=doj.split('-');return p[2]+'-'+p[1]+'-'+p[0];}
+  function age(doj){if(!doj)return'';var d=Math.floor((new Date()-new Date(doj))/86400000);return d>=0?d:'';}
+  function nc(n){return n<0?'#dc2626':n>0?'#16a34a':'#374151';}
+
+  // Styles
+  var hdrBg  = '#1e3a8a', hdrFg  = '#ffffff';
+  var actBg  = '#0e7490', actFg  = '#ffffff';
+  var mtdBg1 = '#ea580c', mtdBg2 = '#f97316', mtdFg = '#ffffff';
+  var ftdBg1 = '#1d4ed8', ftdBg2 = '#3b82f6', ftdFg = '#ffffff';
+  var cmBg   = '#92400e', cmFg   = '#ffffff';
+  var totBg  = '#1e3a8a', totFg  = '#ffffff';
+  var rowBg  = '#ffffff', rowFg  = '#111827';
+  var altBg  = '#f8fafc';
+
+  var th = function(txt,bg,fg,rs,cs,extra){
+    rs=rs||1;cs=cs||1;extra=extra||'';
+    return '<th rowspan="'+rs+'" colspan="'+cs+'" style="background:'+bg+';color:'+fg+
+      ';padding:6px 10px;border:1px solid rgba(255,255,255,0.25);font-size:12px;'+extra+'">'+txt+'</th>';
+  };
+  var td = function(txt,fg,bg,extra){
+    bg=bg||rowBg;fg=fg||rowFg;extra=extra||'';
+    return '<td style="background:'+bg+';color:'+fg+';padding:5px 10px;border:1px solid #d1d5db;font-size:12px;'+extra+'">'+txt+'</td>';
+  };
+
+  var tbl = '<table border="1" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px">';
+  // Header row 1
+  tbl += '<thead>';
+  tbl += '<tr>';
+  tbl += th('CM',        hdrBg,hdrFg,2,1,'min-width:110px;text-align:left');
+  tbl += th('Captain Name',hdrBg,hdrFg,2,1,'min-width:150px;text-align:left');
+  tbl += th('DOJ',       hdrBg,hdrFg,2,1,'text-align:center');
+  tbl += th('Ageing',    hdrBg,hdrFg,2,1,'text-align:center');
+  tbl += th('Active Count',actBg,actFg,2,1,'text-align:center;min-width:80px');
+  tbl += th('MTD',       mtdBg1,mtdFg,1,3,'text-align:center');
+  tbl += th('FTD',       ftdBg1,ftdFg,1,3,'text-align:center');
+  tbl += '</tr>';
+  // Header row 2
+  tbl += '<tr>';
+  tbl += th('DEP',mtdBg2,mtdFg,1,1,'text-align:center');
+  tbl += th('RET',mtdBg2,mtdFg,1,1,'text-align:center');
+  tbl += th('NET',mtdBg2,mtdFg,1,1,'text-align:center');
+  tbl += th('DEP',ftdBg2,ftdFg,1,1,'text-align:center');
+  tbl += th('RET',ftdBg2,ftdFg,1,1,'text-align:center');
+  tbl += th('NET',ftdBg2,ftdFg,1,1,'text-align:center');
+  tbl += '</tr></thead><tbody>';
+
+  var grandActive=0,grandMtdDep=0,grandMtdRet=0,grandFtdDep=0,grandFtdRet=0;
+  var rowIdx=0;
+  Object.keys(cmMap).sort().forEach(function(cm){
+    var captains=cmMap[cm].sort(function(a,b){return a.cap.localeCompare(b.cap);});
+    var cmA=0,cmMD=0,cmMR=0,cmFD=0,cmFR=0;
+    captains.forEach(function(c){
+      var series=NETADD.tl[c.key]||[];
+      var active=0,mtdDep=0,mtdRet=0,ftdDep=0,ftdRet=0;
+      for(var i=0;i<series.length;i++){
+        var r=series[i],di=r[0];
+        if(di<=d1Idx)active+=(r[1]||0)-(r[2]||0);
+        if(monthIdxSet[di]){mtdDep+=(r[1]||0);mtdRet+=(r[2]||0);}
+        if(di===ftdIdx){ftdDep+=(r[1]||0);ftdRet+=(r[2]||0);}
+      }
+      if(active<0)active=0;
+      var mtdNet=mtdDep-mtdRet,ftdNet=ftdDep-ftdRet;
+      cmA+=active;cmMD+=mtdDep;cmMR+=mtdRet;cmFD+=ftdDep;cmFR+=ftdRet;
+
+      var dojInfo=getDoj(c.cap);
+      var dispName=c.cap;
+      if(dojInfo&&dojInfo.name&&/^Captain\s+\d+$/i.test(c.cap))dispName=dojInfo.name;
+      var dojStr=dojInfo?fmtD(dojInfo.doj):'';
+      var ageStr=dojInfo?String(age(dojInfo.doj)):'';
+      var bg=rowIdx%2===0?rowBg:altBg; rowIdx++;
+
+      tbl += '<tr>';
+      tbl += td(cm,rowFg,bg,'text-align:left');
+      tbl += td(dispName,rowFg,bg,'text-align:left');
+      tbl += td(dojStr,rowFg,bg,'text-align:center;white-space:nowrap');
+      tbl += td(ageStr,rowFg,bg,'text-align:center');
+      tbl += td(String(active),'#374151',bg,'text-align:center;font-weight:700');
+      tbl += td(String(mtdDep),rowFg,bg,'text-align:center');
+      tbl += td(String(mtdRet),rowFg,bg,'text-align:center');
+      tbl += td(String(mtdNet),nc(mtdNet),bg,'text-align:center;font-weight:700');
+      tbl += td(String(ftdDep),rowFg,bg,'text-align:center');
+      tbl += td(String(ftdRet),rowFg,bg,'text-align:center');
+      tbl += td(String(ftdNet),nc(ftdNet),bg,'text-align:center;font-weight:700');
+      tbl += '</tr>';
+    });
+    var cmMtdNet=cmMD-cmMR,cmFtdNet=cmFD-cmFR;
+    grandActive+=cmA;grandMtdDep+=cmMD;grandMtdRet+=cmMR;grandFtdDep+=cmFD;grandFtdRet+=cmFR;
+    var clight=function(n){return n<0?'#fca5a5':n>0?'#bbf7d0':cmFg;};
+    tbl += '<tr>';
+    tbl += '<td colspan="2" style="background:'+cmBg+';color:'+cmFg+';padding:5px 10px;border:1px solid rgba(255,255,255,0.15);font-size:12px;font-weight:700">'+cm+' Total</td>';
+    tbl += '<td style="background:'+cmBg+';color:'+cmFg+';padding:5px 10px;border:1px solid rgba(255,255,255,0.15);font-size:12px"></td>';
+    tbl += '<td style="background:'+cmBg+';color:'+cmFg+';padding:5px 10px;border:1px solid rgba(255,255,255,0.15);font-size:12px"></td>';
+    tbl += '<td style="background:'+cmBg+';color:'+cmFg+';padding:5px 10px;border:1px solid rgba(255,255,255,0.15);font-size:12px;text-align:center;font-weight:700">'+cmA+'</td>';
+    tbl += '<td style="background:'+cmBg+';color:'+cmFg+';padding:5px 10px;border:1px solid rgba(255,255,255,0.15);font-size:12px;text-align:center">'+cmMD+'</td>';
+    tbl += '<td style="background:'+cmBg+';color:'+cmFg+';padding:5px 10px;border:1px solid rgba(255,255,255,0.15);font-size:12px;text-align:center">'+cmMR+'</td>';
+    tbl += '<td style="background:'+cmBg+';color:'+clight(cmMtdNet)+';padding:5px 10px;border:1px solid rgba(255,255,255,0.15);font-size:12px;text-align:center;font-weight:700">'+cmMtdNet+'</td>';
+    tbl += '<td style="background:'+cmBg+';color:'+cmFg+';padding:5px 10px;border:1px solid rgba(255,255,255,0.15);font-size:12px;text-align:center">'+cmFD+'</td>';
+    tbl += '<td style="background:'+cmBg+';color:'+cmFg+';padding:5px 10px;border:1px solid rgba(255,255,255,0.15);font-size:12px;text-align:center">'+cmFR+'</td>';
+    tbl += '<td style="background:'+cmBg+';color:'+clight(cmFtdNet)+';padding:5px 10px;border:1px solid rgba(255,255,255,0.15);font-size:12px;text-align:center;font-weight:700">'+cmFtdNet+'</td>';
+    tbl += '</tr>';
+  });
+
+  var gMN=grandMtdDep-grandMtdRet,gFN=grandFtdDep-grandFtdRet;
+  var tlight=function(n){return n<0?'#fca5a5':n>0?'#bbf7d0':totFg;};
+  tbl += '<tr>';
+  tbl += '<td colspan="2" style="background:'+totBg+';color:'+totFg+';padding:6px 10px;border:1px solid rgba(255,255,255,0.2);font-size:12px;font-weight:700">TOTAL</td>';
+  tbl += '<td style="background:'+totBg+';color:'+totFg+';padding:6px 10px;border:1px solid rgba(255,255,255,0.2);font-size:12px"></td>';
+  tbl += '<td style="background:'+totBg+';color:'+totFg+';padding:6px 10px;border:1px solid rgba(255,255,255,0.2);font-size:12px"></td>';
+  tbl += '<td style="background:'+totBg+';color:'+totFg+';padding:6px 10px;border:1px solid rgba(255,255,255,0.2);font-size:12px;text-align:center;font-weight:700">'+grandActive+'</td>';
+  tbl += '<td style="background:'+totBg+';color:'+totFg+';padding:6px 10px;border:1px solid rgba(255,255,255,0.2);font-size:12px;text-align:center">'+grandMtdDep+'</td>';
+  tbl += '<td style="background:'+totBg+';color:'+totFg+';padding:6px 10px;border:1px solid rgba(255,255,255,0.2);font-size:12px;text-align:center">'+grandMtdRet+'</td>';
+  tbl += '<td style="background:'+totBg+';color:'+tlight(gMN)+';padding:6px 10px;border:1px solid rgba(255,255,255,0.2);font-size:12px;text-align:center;font-weight:700">'+gMN+'</td>';
+  tbl += '<td style="background:'+totBg+';color:'+totFg+';padding:6px 10px;border:1px solid rgba(255,255,255,0.2);font-size:12px;text-align:center">'+grandFtdDep+'</td>';
+  tbl += '<td style="background:'+totBg+';color:'+totFg+';padding:6px 10px;border:1px solid rgba(255,255,255,0.2);font-size:12px;text-align:center">'+grandFtdRet+'</td>';
+  tbl += '<td style="background:'+totBg+';color:'+tlight(gFN)+';padding:6px 10px;border:1px solid rgba(255,255,255,0.2);font-size:12px;text-align:center;font-weight:700">'+gFN+'</td>';
+  tbl += '</tr>';
+  tbl += '</tbody></table>';
+
+  var xls = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">' +
+    '<head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>' +
+    '<x:Name>MTD Net Add</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>' +
+    '</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>' +
+    '<body>' + tbl + '</body></html>';
+
+  var blob = new Blob([xls],{type:'application/vnd.ms-excel;charset=utf-8'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url;
+  a.download = 'MTD_NetAdd_'+city.replace(/\s+/g,'_')+'_'+moName+'_'+yr+'.xls';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
 // ── End MTD Net Add Report ─────────────────────────────────────────────────────
 
 try{ initCityNaFilters(); }catch(e){console.warn("Init error [initCityNaFilters();]:", e);}
+  try{ initMtdNetAdd(); }catch(e){console.warn("Init error [initMtdNetAdd();]:", e);}
   try{ initCmNaFilters(); }catch(e){console.warn("Init error [initCmNaFilters();]:", e);}
   try{ initM1MonthFilters(); }catch(e){console.warn("Init error [initM1MonthFilters();]:", e);}
 }catch(e){console.error("Dashboard init failed:", e);}
