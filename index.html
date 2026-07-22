@@ -2728,14 +2728,26 @@ function renderOneView(){
   allCM.slice(0,10).forEach(function(r,i){cmRows+=tr2([{v:rk(i)},{v:'<strong>'+r.cm+'</strong>'},{v:cityAbbr(r.city)},{v:sbar(r.n,cmMax,ACC)},{v:r.n,r:1,b:1}],i%2);});
   out+=wrap(cardH('▲ Top 10 CMs — Active')+tbl(th([{t:'#'},{t:'CM Name'},{t:'City'},{t:''},{t:'Active',r:1}])+cmRows));
 
+  /* Captain display name: bare UID → real name (DOJ) or 'Captain XXXXX'; Captain XXXXX → real name if in DOJ */
+  var _cdBN=(CAPTAIN_DOJ&&CAPTAIN_DOJ.by_name)||{};
+  var _cdBU=(CAPTAIN_DOJ&&CAPTAIN_DOJ.by_uid)||{};
+  function capDisp(cap){
+    if(/^\d+$/.test(cap)){
+      return (_cdBU[cap]&&_cdBU[cap].name)?_cdBU[cap].name:'Captain '+cap;
+    }
+    var mm=cap.match(/^Captain\s+(\d+)$/i);
+    if(mm&&_cdBU[mm[1]]&&_cdBU[mm[1]].name) return _cdBU[mm[1]].name;
+    return cap;
+  }
+
   /* Top 10 Captains */
   var capMax=allCAP.length>0?allCAP[0].n:1,capRows='';
-  allCAP.slice(0,10).forEach(function(r,i){capRows+=tr2([{v:rk(i)},{v:'<strong>'+r.cap+'</strong>'},{v:r.cm},{v:cityAbbr(r.city)},{v:r.n,r:1,b:1}],i%2);});
+  allCAP.slice(0,10).forEach(function(r,i){capRows+=tr2([{v:rk(i)},{v:'<strong>'+capDisp(r.cap)+'</strong>'},{v:r.cm},{v:cityAbbr(r.city)},{v:r.n,r:1,b:1}],i%2);});
   out+=wrap(cardH('▲ Top 10 Captains — Active')+tbl(th([{t:'#'},{t:'Captain'},{t:'CM'},{t:'City'},{t:'Active',r:1}])+capRows));
 
   /* Bottom 10 Captains */
   var botCap=allCAP.slice().reverse().slice(0,10),botRows='';
-  botCap.forEach(function(r,i){botRows+=tr2([{v:rk(i,1)},{v:'<strong>'+r.cap+'</strong>'},{v:r.cm},{v:cityAbbr(r.city)},{v:r.n,r:1}],i%2);});
+  botCap.forEach(function(r,i){botRows+=tr2([{v:rk(i,1)},{v:'<strong>'+capDisp(r.cap)+'</strong>'},{v:r.cm},{v:cityAbbr(r.city)},{v:r.n,r:1}],i%2);});
   out+=wrap(cardH('▼ Bottom 10 Captains — Active')+tbl(th([{t:'#'},{t:'Captain'},{t:'CM'},{t:'City'},{t:'Active',r:1}])+botRows));
 
   /* OEM — Own purchase (standalone column) */
