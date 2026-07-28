@@ -3244,11 +3244,16 @@ function exportMtdExcel(){
   var moName = MONTHS[parseInt(mo)-1];
 
   var dates  = NETADD.dates;
-  var d1Idx  = dates.length - 1;
+  // Use NETADD.d1 (explicit D-1 date) — same as renderMtdNetAdd (Rule 52 fix).
+  // Falling back to dates.length-1 caused Excel to compute active/FTD as of
+  // today rather than D-1, giving wrong active counts and 0 FTD deploys.
+  var d1Date = (NETADD.d1) || dates[dates.length - 1];
+  var d1Idx  = dates.indexOf(d1Date);
+  if(d1Idx < 0) d1Idx = dates.length - 1;
   var ym     = yr + '-' + (mo < 10 ? '0' : '') + mo;
   var monthIdxSet = {}, ftdIdx = -1;
   for(var i=0;i<dates.length;i++){
-    if(dates[i].slice(0,7)===ym){ monthIdxSet[i]=true; if(i>ftdIdx)ftdIdx=i; }
+    if(dates[i].slice(0,7)===ym && dates[i]<=d1Date){ monthIdxSet[i]=true; if(i>ftdIdx)ftdIdx=i; }
   }
 
   var prefix = city+'|';
