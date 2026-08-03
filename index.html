@@ -767,6 +767,10 @@
         <input type="text" id="vmSearch" oninput="vmApplyFilters()"
           placeholder="Search chassis / reg..."
           style="padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;min-width:180px">
+        <button onclick="vmExportCSV()" title="Export filtered rows to CSV"
+          style="padding:5px 14px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+          &#11123; Export CSV
+        </button>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;padding:8px 20px 4px;font-size:13px;color:#6b7280;flex-wrap:wrap">
@@ -6044,6 +6048,47 @@ var VEHICLE_MASTER = [{"c":"MD9HAPXF4GR710037","r":"KA01AQ6937","o":"Quantum","c
     vmRenderPage();
     var sec = document.getElementById('vmSection');
     if (sec) sec.scrollIntoView({behavior: 'smooth', block: 'start'});
+  };
+
+  window.vmExportCSV = function() {
+    if (!_vm_filtered || !_vm_filtered.length) { alert('No data to export.'); return; }
+    var headers = ['#','Chassis No','Reg No','OEM','City','Batch','Received Date','Vehicle Status','Days in Status'];
+    var rows = [headers];
+    _vm_filtered.forEach(function(v, i) {
+      rows.push([
+        i + 1,
+        v.c || '',
+        v.r || '',
+        v.o || '',
+        v.ci || '',
+        v.m || '',
+        v.d || '',
+        v.s || '',
+        (v.dy !== null && v.dy !== undefined) ? v.dy : ''
+      ]);
+    });
+    var csv = rows.map(function(row) {
+      return row.map(function(cell) {
+        var s = String(cell);
+        if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('
+') >= 0) {
+          s = '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      }).join(',');
+    }).join('
+');
+    var city   = (document.getElementById('vmCity')   || {}).value || 'All';
+    var oem    = (document.getElementById('vmOEM')    || {}).value || 'All';
+    var stat   = (document.getElementById('vmStatus') || {}).value || 'All';
+    var today  = new Date().toISOString().slice(0,10);
+    var fname  = 'FleetMaster_' + city + '_' + stat + '_' + today + '.csv';
+    var blob   = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    var url    = URL.createObjectURL(blob);
+    var a      = document.createElement('a');
+    a.href = url; a.download = fname; a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
   };
 
   if (document.readyState === 'loading') {
