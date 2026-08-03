@@ -6070,14 +6070,12 @@ var VEHICLE_MASTER = [{"c":"MD9HAPXF4GR710037","r":"KA01AQ6937","o":"Quantum","c
     var csv = rows.map(function(row) {
       return row.map(function(cell) {
         var s = String(cell);
-        if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('
-') >= 0) {
+        if (s.indexOf(',') >= 0 || s.indexOf('\"') >= 0 || s.indexOf('\n') >= 0) {
           s = '"' + s.replace(/"/g, '""') + '"';
         }
         return s;
       }).join(',');
-    }).join('
-');
+    }).join('\n');
     var city   = (document.getElementById('vmCity')   || {}).value || 'All';
     var oem    = (document.getElementById('vmOEM')    || {}).value || 'All';
     var stat   = (document.getElementById('vmStatus') || {}).value || 'All';
