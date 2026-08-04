@@ -2747,7 +2747,7 @@ function renderOneView(){
   out+='</div>';
 
   /* ══ ROW 3: Top CMs | Top Captains | Bottom Captains | OEM (4 cols) ══ */
-  out+='<div style="display:grid;grid-template-columns:0.85fr 1.15fr 1.15fr 0.6fr;gap:8px">';
+  out+='<div style="display:grid;grid-template-columns:0.85fr 1.4fr 1.4fr;gap:8px">';
 
   /* Top 10 CMs */
   var cmMax=allCM.length>0?allCM[0].n:1,cmRows='';
@@ -2799,11 +2799,6 @@ function renderOneView(){
   });
   out+=wrap(cardH('▼ Bottom 10 Captains — Active')+tbl(th([{t:'#'},{t:'Captain'},{t:'CM'},{t:'City'},{t:'DOJ'},{t:'Age',r:1},{t:'Active',r:1}])+botRows));
 
-  /* OEM — Own purchase (standalone column) */
-  var oemMax=oemList.length>0?oemList[0].n:1,oemRows='';
-  oemList.forEach(function(r,i){oemRows+=tr2([{v:'<strong>'+r.oem+'</strong>'},{v:sbar(r.n,oemMax,ACC)},{v:fmt(r.n),r:1,b:1}],i%2);});
-  oemRows+=tfoot2([{v:'Total'},{v:''},{v:fmt(oemTot),r:1}]);
-  out+=wrap(cardH('OEM — Own Purchase')+tbl(th([{t:'OEM'},{t:''},{t:'Count',r:1}])+oemRows));
 
   out+='</div>';
   out+='</div>';
