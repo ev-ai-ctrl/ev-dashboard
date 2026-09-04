@@ -4506,17 +4506,30 @@ function renderCapSpanCaptain(){
   var tbl =document.getElementById('capSpanCapTable');
   var titEl=document.getElementById('capSpanCapTitle');
 
-  if(!city||city==='ALL'||!cmk||cmk==='ALL'){
-    tbl.innerHTML="<thead><tr><th>Captain</th></tr></thead><tbody><tr><td style='text-align:center;color:#aaa;padding:20px'>Select a City and CM to see captain-level data</td></tr></tbody>";
+  if(!city||city==='ALL'){
+    tbl.innerHTML="<thead><tr><th>Captain</th></tr></thead><tbody><tr><td style='text-align:center;color:#aaa;padding:20px'>Select a City to see captain-level data</td></tr></tbody>";
     titEl.textContent='Captain Span — Captain × Month';
     return;
   }
 
   var mos=spanYearMonths(yr);
-  var cityLbl=city; var cmName=cmk.split('|')[1];
-  titEl.textContent='Captain Span — Captain × Month ('+yr+') — '+cityLbl+' — '+cmName;
+  var cityLbl=city;
+  var allCM=(!cmk||cmk==='ALL');
+  if(allCM){
+    titEl.textContent='Captain Span — Captain × Month ('+yr+') — '+cityLbl+' — All CMs';
+  } else {
+    var cmName=cmk.split('|')[1];
+    titEl.textContent='Captain Span — Captain × Month ('+yr+') — '+cityLbl+' — '+cmName;
+  }
 
-  var caps=(SPAN.cm_to_captains[cmk]||[]).filter(function(cap){
+  var capSet=[];
+  if(allCM){
+    var cmksForCity=SPAN.city_to_cms[city]||[];
+    cmksForCity.forEach(function(ck){ (SPAN.cm_to_captains[ck]||[]).forEach(function(c){ if(capSet.indexOf(c)<0) capSet.push(c); }); });
+  } else {
+    capSet=(SPAN.cm_to_captains[cmk]||[]);
+  }
+  var caps=capSet.filter(function(cap){
     return mos.some(function(m){ return (SPAN.by_captain[cap]||{})[m.key]>0; });
   });
 
