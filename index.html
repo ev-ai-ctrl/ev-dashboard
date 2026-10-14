@@ -1,6 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head><script>
+(function(){
+  var HASH='fe832fe06b01be523eb5dcfae8e670d5501d4221594d9a570ea21cf9c5dc9f92';
+  var KEY='ev_auth_ok';
+  if(sessionStorage.getItem(KEY)===HASH)return;
+  document.documentElement.style.visibility='hidden';
+  window.addEventListener('DOMContentLoaded',function(){
+    var ov=document.createElement('div');
+    ov.id='ev-pwd-overlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;';
+    ov.innerHTML='<div style="background:#1e293b;padding:40px 48px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.5);text-align:center;min-width:320px;">'
+      +'<div style="font-size:32px;margin-bottom:8px;">🔒</div>'
+      +'<h2 style="color:#f8fafc;margin:0 0 4px;font-size:20px;font-weight:700;">EV Dashboard</h2>'
+      +'<p style="color:#94a3b8;margin:0 0 24px;font-size:13px;">Loadshare — Internal Use Only</p>'
+      +'<input id="ev-pwd-input" type="password" placeholder="Enter password" autofocus '
+      +'style="width:100%;box-sizing:border-box;padding:10px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#f8fafc;font-size:15px;outline:none;margin-bottom:12px;" />'
+      +'<button id="ev-pwd-btn" style="width:100%;padding:10px;border-radius:8px;background:#3b82f6;color:#fff;font-size:15px;font-weight:600;border:none;cursor:pointer;">Unlock</button>'
+      +'<p id="ev-pwd-err" style="color:#f87171;font-size:13px;margin:10px 0 0;min-height:18px;"></p>'
+      +'</div>';
+    document.body.appendChild(ov);
+    document.documentElement.style.visibility='visible';
+    function check(){
+      var v=document.getElementById('ev-pwd-input').value;
+      crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(buf){
+        var hex=Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
+        if(hex===HASH){sessionStorage.setItem(KEY,HASH);ov.remove();}
+        else{document.getElementById('ev-pwd-err').textContent='Incorrect password';}
+      });
+    }
+    document.getElementById('ev-pwd-btn').addEventListener('click',check);
+    document.getElementById('ev-pwd-input').addEventListener('keydown',function(e){if(e.key==='Enter')check();});
+  });
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EV Current Status Dashboard - Loadshare</title>
